@@ -86,8 +86,6 @@ html, body {
   overflow: hidden;
   color: white;
   pointer-events: auto;
-  display: flex;
-  flex-direction: column;
 }
 
 .window.focused {
@@ -102,11 +100,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 0 8px;
-  cursor: grab;
-}
-
-.title-bar:active {
-  cursor: grabbing;
+  cursor: move;
 }
 
 .title-bar span {
@@ -130,18 +124,7 @@ html, body {
 /* Window content */
 .window-content {
   padding: 12px;
-  flex-grow: 1;
-  overflow: auto;
+  height: calc(100% - 32px);
   background: #1e1e2f;
-}
-
-/* Resize handle */
-.resize-handle {
-  width: 16px;
-  height: 16px;
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  cursor: se-resize;
-  z-index: 1001;
+  overflow: auto;
 }
