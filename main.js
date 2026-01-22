@@ -1,114 +1,83 @@
-let zIndexCounter = 10;
-const windowsContainer = document.getElementById("windows");
+const taskbar = document.getElementById("task-right"); // container for buttons
 
-// Clock
-function updateClock() {
-  const now = new Date();
-  document.getElementById("clock").textContent =
-    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// Desktop icons double-click
-document.querySelectorAll(".icon").forEach(icon => {
-  let timer = null;
-  icon.addEventListener("click", () => {
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-      openApp(icon.dataset.app);
-    } else {
-      timer = setTimeout(() => timer = null, 250);
-    }
-  });
-});
-
-// Open app
 function openApp(app) {
-  const win = createWindow(app);
-  windowsContainer.appendChild(win);
-  focusWindow(win);
-}
-
-// Create window
-function createWindow(app) {
   const win = document.createElement("div");
   win.className = "window";
   win.style.left = "100px";
   win.style.top = "100px";
+  win.style.width = "600px";
+  win.style.height = "400px";
   win.style.zIndex = ++zIndexCounter;
+
+  win.dataset.appName = app;
 
   win.innerHTML = `
     <div class="title-bar">
       <span>${app.toUpperCase()}</span>
       <div class="window-controls">
         <button data-action="minimize">—</button>
+        <button data-action="fullscreen">⬜</button>
         <button data-action="close">✕</button>
       </div>
     </div>
     <div class="window-content">
       ${getAppContent(app)}
     </div>
+    <div class="resize-handle"></div>
   `;
 
-  // Focus
-  win.addEventListener("mousedown", () => focusWindow(win));
+  windowsContainer.appendChild(win);
+  focusWindow(win);
 
-  // Dragging
-  const titleBar = win.querySelector(".title-bar");
-  let offsetX, offsetY, dragging = false;
+  makeDraggable(win);
+  makeResizable(win);
+  setupWindowControls(win);
 
-  titleBar.addEventListener("mousedown", e => {
-    dragging = true;
-    offsetX = e.clientX - win.offsetLeft;
-    offsetY = e.clientY - win.offsetTop;
-    focusWindow(win);
-  });
-
-  document.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    win.style.left = `${e.clientX - offsetX}px`;
-    win.style.top = `${e.clientY - offsetY}px`;
-  });
-
-  document.addEventListener("mouseup", () => dragging = false);
-
-  // Window controls
-  win.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      const action = btn.dataset.action;
-      if (action === "close") win.remove();
-      if (action === "minimize") win.style.display = "none";
-    });
-  });
-
-  return win;
+  createTaskbarButton(win);
 }
 
-// Focus window
+// Taskbar button creation
+function createTaskbarButton(win) {
+  const button = document.createElement("button");
+  button.className = "taskbar-window-button";
+  button.textContent = win.dataset.appName.toUpperCase();
+
+  button.addEventListener("click", () => {
+    if (win.style.display === "none") {
+      win.style.display = "flex";
+      focusWindow(win);
+    } else {
+      win.style.display = "none";
+    }
+    updateTaskbarButtons();
+  });
+
+  taskbar.appendChild(button);
+  win.dataset.taskbarButtonId = Date.now(); // unique id
+  button.dataset.winId = win.dataset.taskbarButtonId;
+
+  updateTaskbarButtons();
+}
+
+// Update active class for taskbar buttons
+function updateTaskbarButtons() {
+  document.querySelectorAll(".taskbar-window-button").forEach(btn => {
+    const win = Array.from(document.querySelectorAll(".window"))
+      .find(w => w.dataset.taskbarButtonId === btn.dataset.winId);
+    if (!win) return btn.remove();
+
+    if (win.style.display !== "none" && win.classList.contains("focused")) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+}
+
+// Make sure to call updateTaskbarButtons after focusing windows
 function focusWindow(win) {
   document.querySelectorAll(".window").forEach(w => w.classList.remove("focused"));
   win.classList.add("focused");
   win.style.zIndex = ++zIndexCounter;
-}
-
-// App content
-function getAppContent(app) {
-  if (app === "browser") {
-    return `
-      <input placeholder="Enter URL (proxy coming soon)" style="width:100%;padding:8px">
-      <p style="margin-top:10px;opacity:0.7">Proxy engine coming soon 👀</p>
-    `;
-  }
-
-  if (app === "settings") {
-    return `
-      <h3>Settings</h3>
-      <p>Theme, proxy behavior, and system options will live here.</p>
-    `;
-  }
-
-  return `<p>Unknown app</p>`;
+  updateTaskbarButtons();
 }
