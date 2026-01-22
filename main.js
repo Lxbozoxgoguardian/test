@@ -1,154 +1,130 @@
-let zIndexCounter = 10;
-const windowsContainer = document.getElementById("windows");
-
-// Clock
-function updateClock() {
-  const now = new Date();
-  document.getElementById("clock").textContent =
-    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// Desktop icons double-click
-document.querySelectorAll(".icon").forEach(icon => {
-  icon.addEventListener("dblclick", () => openApp(icon.dataset.app));
-});
-
-// Open an app window
-function openApp(app) {
-  const win = document.createElement("div");
-  win.className = "window";
-  win.style.left = "100px";
-  win.style.top = "100px";
-  win.style.width = "600px";
-  win.style.height = "400px";
-  win.style.zIndex = ++zIndexCounter;
-
-  win.innerHTML = `
-    <div class="title-bar">
-      <span>${app.toUpperCase()}</span>
-      <div class="window-controls">
-        <button data-action="minimize">—</button>
-        <button data-action="fullscreen">⬜</button>
-        <button data-action="close">✕</button>
-      </div>
-    </div>
-    <div class="window-content">
-      ${getAppContent(app)}
-    </div>
-    <div class="resize-handle"></div>
-  `;
-
-  windowsContainer.appendChild(win);
-  focusWindow(win);
-
-  makeDraggable(win);
-  makeResizable(win);
-  setupWindowControls(win);
+/* Reset & basic styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  font-family: system-ui, sans-serif;
 }
 
-// Focus window
-function focusWindow(win) {
-  document.querySelectorAll(".window").forEach(w => w.classList.remove("focused"));
-  win.classList.add("focused");
-  win.style.zIndex = ++zIndexCounter;
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-// Draggable
-function makeDraggable(win) {
-  const titleBar = win.querySelector(".title-bar");
-  let dragging = false;
-  let offsetX = 0, offsetY = 0;
-
-  titleBar.addEventListener("mousedown", e => {
-    if (win.dataset.fullscreen === "true") return;
-    dragging = true;
-    offsetX = e.clientX - win.offsetLeft;
-    offsetY = e.clientY - win.offsetTop;
-    focusWindow(win);
-    e.preventDefault();
-  });
-
-  document.addEventListener("mousemove", e => {
-    if (dragging && win.dataset.fullscreen !== "true") {
-      win.style.left = `${e.clientX - offsetX}px`;
-      win.style.top = `${e.clientY - offsetY}px`;
-    }
-  });
-
-  document.addEventListener("mouseup", () => dragging = false);
+/* Desktop */
+#desktop {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e1e2f, #2b2b45);
+  padding: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-// Resizable
-function makeResizable(win) {
-  const handle = win.querySelector(".resize-handle");
-  let resizing = false, startX = 0, startY = 0, startWidth = 0, startHeight = 0;
-
-  handle.addEventListener("mousedown", e => {
-    if (win.dataset.fullscreen === "true") return;
-    resizing = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    startWidth = parseInt(window.getComputedStyle(win).width, 10);
-    startHeight = parseInt(window.getComputedStyle(win).height, 10);
-    focusWindow(win);
-    e.preventDefault();
-    e.stopPropagation();
-  });
-
-  document.addEventListener("mousemove", e => {
-    if (!resizing) return;
-    win.style.width = `${startWidth + (e.clientX - startX)}px`;
-    win.style.height = `${startHeight + (e.clientY - startY)}px`;
-  });
-
-  document.addEventListener("mouseup", () => resizing = false);
+.icon {
+  width: 80px;
+  text-align: center;
+  color: white;
+  cursor: pointer;
+  display: inline-block;
+  margin: 10px;
 }
 
-// Window controls
-function setupWindowControls(win) {
-  win.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      const action = btn.dataset.action;
-
-      if (action === "close") win.remove();
-      if (action === "minimize") win.style.display = "none";
-
-      if (action === "fullscreen") {
-        if (!win.dataset.fullscreen) {
-          win.dataset.fullscreen = "true";
-          win.dataset.prev = JSON.stringify({
-            left: win.style.left,
-            top: win.style.top,
-            width: win.style.width,
-            height: win.style.height
-          });
-          win.style.left = "0px";
-          win.style.top = "0px";
-          win.style.width = "100%";
-          win.style.height = "100%";
-        } else {
-          const prev = JSON.parse(win.dataset.prev);
-          win.dataset.fullscreen = "";
-          win.style.left = prev.left;
-          win.style.top = prev.top;
-          win.style.width = prev.width;
-          win.style.height = prev.height;
-        }
-      }
-    });
-  });
+.icon img {
+  width: 48px;
+  height: 48px;
 }
 
-// App content
-function getAppContent(app) {
-  if (app === "browser") {
-    return `<input placeholder="Enter URL (proxy coming soon)" style="width:100%;padding:8px"><p style="margin-top:10px;opacity:0.7">Proxy engine coming soon 👀</p>`;
-  }
-  if (app === "settings") {
-    return `<h3>Settings</h3><p>Theme, proxy behavior, and system options will live here.</p>`;
-  }
-  return `<p>Unknown app</p>`;
+.icon span {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+/* Taskbar */
+#taskbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 40px;
+  width: 100%;
+  background: rgba(20, 20, 30, 0.9);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+  color: white;
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+#task-right {
+  font-size: 14px;
+}
+
+/* Windows container */
+#windows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Window */
+.window {
+  position: absolute;
+  width: 600px;
+  height: 400px;
+  background: #1e1e2f;
+  border-radius: 8px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  overflow: hidden;
+  color: white;
+  pointer-events: auto;
+}
+
+.window.focused {
+  outline: 2px solid #4da6ff;
+}
+
+/* Title bar */
+.title-bar {
+  height: 32px;
+  background: #2b2b45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  cursor: move;
+}
+
+.title-bar span {
+  font-size: 13px;
+}
+
+.window-controls button {
+  background: none;
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.window-controls button:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Window content */
+.window-content {
+  padding: 12px;
+  height: calc(100% - 32px);
+  background: #1e1e2f;
+  overflow: auto;
 }
