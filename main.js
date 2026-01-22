@@ -12,16 +12,7 @@ updateClock();
 
 // Desktop icons double-click
 document.querySelectorAll(".icon").forEach(icon => {
-  let timer = null;
-  icon.addEventListener("click", () => {
-    if (timer) {
-      clearTimeout(timer);
-      timer = null;
-      openApp(icon.dataset.app);
-    } else {
-      timer = setTimeout(() => timer = null, 250);
-    }
-  });
+  icon.addEventListener("dblclick", () => openApp(icon.dataset.app));
 });
 
 // Open app
@@ -56,7 +47,7 @@ function createWindow(app) {
     <div class="resize-handle"></div>
   `;
 
-  // Focus
+  // Focus window
   win.addEventListener("mousedown", () => focusWindow(win));
 
   // Dragging
@@ -73,9 +64,10 @@ function createWindow(app) {
   });
 
   document.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    win.style.left = `${e.clientX - offsetX}px`;
-    win.style.top = `${e.clientY - offsetY}px`;
+    if (dragging && win.dataset.fullscreen !== "true") {
+      win.style.left = `${e.clientX - offsetX}px`;
+      win.style.top = `${e.clientY - offsetY}px`;
+    }
   });
 
   document.addEventListener("mouseup", () => dragging = false);
