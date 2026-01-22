@@ -61,9 +61,10 @@ function createWindow(app) {
 
   // Dragging
   const titleBar = win.querySelector(".title-bar");
-  let offsetX = 0, offsetY = 0, dragging = false;
+  let dragging = false, offsetX = 0, offsetY = 0;
 
   titleBar.addEventListener("mousedown", e => {
+    if (win.dataset.fullscreen === "true") return;
     dragging = true;
     offsetX = e.clientX - win.offsetLeft;
     offsetY = e.clientY - win.offsetTop;
@@ -72,7 +73,7 @@ function createWindow(app) {
   });
 
   document.addEventListener("mousemove", e => {
-    if (!dragging || win.dataset.fullscreen === "true") return;
+    if (!dragging) return;
     win.style.left = `${e.clientX - offsetX}px`;
     win.style.top = `${e.clientY - offsetY}px`;
   });
@@ -83,4 +84,85 @@ function createWindow(app) {
   win.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
-      const action = btn.datase
+      const action = btn.dataset.action;
+
+      if (action === "close") win.remove();
+      if (action === "minimize") win.style.display = "none";
+
+      if (action === "fullscreen") {
+        if (!win.dataset.fullscreen) {
+          win.dataset.fullscreen = "true";
+          win.dataset.prev = JSON.stringify({
+            left: win.style.left,
+            top: win.style.top,
+            width: win.style.width,
+            height: win.style.height
+          });
+          win.style.left = "0px";
+          win.style.top = "0px";
+          win.style.width = "100%";
+          win.style.height = "100%";
+        } else {
+          const prev = JSON.parse(win.dataset.prev);
+          win.dataset.fullscreen = "";
+          win.style.left = prev.left;
+          win.style.top = prev.top;
+          win.style.width = prev.width;
+          win.style.height = prev.height;
+        }
+      }
+    });
+  });
+
+  // Resize
+  const handle = win.querySelector(".resize-handle");
+  let resizing = false, startX = 0, startY = 0, startWidth = 0, startHeight = 0;
+
+  handle.addEventListener("mousedown", e => {
+    if (win.dataset.fullscreen === "true") return;
+    e.stopPropagation();
+    resizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = parseInt(window.getComputedStyle(win).width, 10);
+    startHeight = parseInt(window.getComputedStyle(win).height, 10);
+    focusWindow(win);
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", e => {
+    if (!resizing) return;
+    win.style.width = `${startWidth + (e.clientX - startX)}px`;
+    win.style.height = `${startHeight + (e.clientY - startY)}px`;
+  });
+
+  document.addEventListener("mouseup", () => resizing = false);
+
+  return win;
+}
+
+// Focus window
+function focusWindow(win) {
+  document.querySelectorAll(".window").forEach(w => w.classList.remove("focused"));
+  win.classList.add("focused");
+  win.style.zIndex = ++zIndexCounter;
+}
+
+// App content
+function getAppContent(app) {
+  if (app === "browser") {
+    return `
+      <input placeholder="Enter URL (proxy coming soon)" style="width:100%;padding:8px">
+      <p style="margin-top:10px;opacity:0.7">Proxy engine coming soon 👀</p>
+    `;
+  }
+
+  if (app === "settings") {
+    return `
+      <h3>Settings</h3>
+      <p>Theme, proxy behavior, and system options will live here.</p>
+    `;
+  }
+
+  return `<p>Unknown app</p>`;
+}
