@@ -1,7 +1,7 @@
 let zIndexCounter = 10;
 const windowsContainer = document.getElementById("windows");
 
-// CLOCK (unchanged)
+// Clock
 function updateClock() {
   const now = new Date();
   document.getElementById("clock").textContent =
@@ -10,7 +10,7 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ICON DOUBLE CLICK
+// Desktop icons double-click
 document.querySelectorAll(".icon").forEach(icon => {
   let timer = null;
   icon.addEventListener("click", () => {
@@ -24,14 +24,14 @@ document.querySelectorAll(".icon").forEach(icon => {
   });
 });
 
-// OPEN APP
+// Open app
 function openApp(app) {
   const win = createWindow(app);
   windowsContainer.appendChild(win);
   focusWindow(win);
 }
 
-// CREATE WINDOW
+// Create window
 function createWindow(app) {
   const win = document.createElement("div");
   win.className = "window";
@@ -52,7 +52,7 @@ function createWindow(app) {
     </div>
   `;
 
-  // Focus on click
+  // Focus
   win.addEventListener("mousedown", () => focusWindow(win));
 
   // Dragging
@@ -74,7 +74,7 @@ function createWindow(app) {
 
   document.addEventListener("mouseup", () => dragging = false);
 
-  // Controls
+  // Window controls
   win.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
@@ -87,18 +87,18 @@ function createWindow(app) {
   return win;
 }
 
-// FOCUS
+// Focus window
 function focusWindow(win) {
   document.querySelectorAll(".window").forEach(w => w.classList.remove("focused"));
   win.classList.add("focused");
   win.style.zIndex = ++zIndexCounter;
 }
 
-// APP CONTENT
+// App content
 function getAppContent(app) {
   if (app === "browser") {
     return `
-      <input placeholder="Enter URL (proxy later)" style="width:100%;padding:8px">
+      <input placeholder="Enter URL (proxy coming soon)" style="width:100%;padding:8px">
       <p style="margin-top:10px;opacity:0.7">Proxy engine coming soon 👀</p>
     `;
   }
@@ -106,7 +106,7 @@ function getAppContent(app) {
   if (app === "settings") {
     return `
       <h3>Settings</h3>
-      <p>Theme, proxy behavior, system options will live here.</p>
+      <p>Theme, proxy behavior, and system options will live here.</p>
     `;
   }
 
