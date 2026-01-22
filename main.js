@@ -37,6 +37,8 @@ function createWindow(app) {
   win.className = "window";
   win.style.left = "100px";
   win.style.top = "100px";
+  win.style.width = "600px";
+  win.style.height = "400px";
   win.style.zIndex = ++zIndexCounter;
 
   win.innerHTML = `
@@ -44,12 +46,14 @@ function createWindow(app) {
       <span>${app.toUpperCase()}</span>
       <div class="window-controls">
         <button data-action="minimize">—</button>
+        <button data-action="fullscreen">⬜</button>
         <button data-action="close">✕</button>
       </div>
     </div>
     <div class="window-content">
       ${getAppContent(app)}
     </div>
+    <div class="resize-handle"></div>
   `;
 
   // Focus
@@ -57,17 +61,18 @@ function createWindow(app) {
 
   // Dragging
   const titleBar = win.querySelector(".title-bar");
-  let offsetX, offsetY, dragging = false;
+  let offsetX = 0, offsetY = 0, dragging = false;
 
   titleBar.addEventListener("mousedown", e => {
     dragging = true;
     offsetX = e.clientX - win.offsetLeft;
     offsetY = e.clientY - win.offsetTop;
     focusWindow(win);
+    e.preventDefault();
   });
 
   document.addEventListener("mousemove", e => {
-    if (!dragging) return;
+    if (!dragging || win.dataset.fullscreen === "true") return;
     win.style.left = `${e.clientX - offsetX}px`;
     win.style.top = `${e.clientY - offsetY}px`;
   });
@@ -78,37 +83,4 @@ function createWindow(app) {
   win.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
-      const action = btn.dataset.action;
-      if (action === "close") win.remove();
-      if (action === "minimize") win.style.display = "none";
-    });
-  });
-
-  return win;
-}
-
-// Focus window
-function focusWindow(win) {
-  document.querySelectorAll(".window").forEach(w => w.classList.remove("focused"));
-  win.classList.add("focused");
-  win.style.zIndex = ++zIndexCounter;
-}
-
-// App content
-function getAppContent(app) {
-  if (app === "browser") {
-    return `
-      <input placeholder="Enter URL (proxy coming soon)" style="width:100%;padding:8px">
-      <p style="margin-top:10px;opacity:0.7">Proxy engine coming soon 👀</p>
-    `;
-  }
-
-  if (app === "settings") {
-    return `
-      <h3>Settings</h3>
-      <p>Theme, proxy behavior, and system options will live here.</p>
-    `;
-  }
-
-  return `<p>Unknown app</p>`;
-}
+      const action = btn.datase
