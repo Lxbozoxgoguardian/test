@@ -1,5 +1,22 @@
-const taskbar = document.getElementById("task-right"); // container for buttons
+let zIndexCounter = 10;
+const windowsContainer = document.getElementById("windows");
+const taskbar = document.getElementById("task-right");
 
+// Clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById("clock").textContent =
+    now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Desktop icons double-click
+document.querySelectorAll(".icon").forEach(icon => {
+  icon.addEventListener("dblclick", () => openApp(icon.dataset.app));
+});
+
+// Open an app window
 function openApp(app) {
   const win = document.createElement("div");
   win.className = "window";
@@ -8,8 +25,8 @@ function openApp(app) {
   win.style.width = "600px";
   win.style.height = "400px";
   win.style.zIndex = ++zIndexCounter;
-
   win.dataset.appName = app;
+  win.dataset.id = Date.now();
 
   win.innerHTML = `
     <div class="title-bar">
@@ -32,52 +49,42 @@ function openApp(app) {
   makeDraggable(win);
   makeResizable(win);
   setupWindowControls(win);
-
   createTaskbarButton(win);
 }
 
-// Taskbar button creation
-function createTaskbarButton(win) {
-  const button = document.createElement("button");
-  button.className = "taskbar-window-button";
-  button.textContent = win.dataset.appName.toUpperCase();
-
-  button.addEventListener("click", () => {
-    if (win.style.display === "none") {
-      win.style.display = "flex";
-      focusWindow(win);
-    } else {
-      win.style.display = "none";
-    }
-    updateTaskbarButtons();
-  });
-
-  taskbar.appendChild(button);
-  win.dataset.taskbarButtonId = Date.now(); // unique id
-  button.dataset.winId = win.dataset.taskbarButtonId;
-
-  updateTaskbarButtons();
-}
-
-// Update active class for taskbar buttons
-function updateTaskbarButtons() {
-  document.querySelectorAll(".taskbar-window-button").forEach(btn => {
-    const win = Array.from(document.querySelectorAll(".window"))
-      .find(w => w.dataset.taskbarButtonId === btn.dataset.winId);
-    if (!win) return btn.remove();
-
-    if (win.style.display !== "none" && win.classList.contains("focused")) {
-      btn.classList.add("active");
-    } else {
-      btn.classList.remove("active");
-    }
-  });
-}
-
-// Make sure to call updateTaskbarButtons after focusing windows
+// Focus window
 function focusWindow(win) {
   document.querySelectorAll(".window").forEach(w => w.classList.remove("focused"));
   win.classList.add("focused");
   win.style.zIndex = ++zIndexCounter;
   updateTaskbarButtons();
 }
+
+// Draggable
+function makeDraggable(win) {
+  const titleBar = win.querySelector(".title-bar");
+  let dragging = false, offsetX = 0, offsetY = 0;
+
+  titleBar.addEventListener("mousedown", e => {
+    if (win.dataset.fullscreen === "true") return;
+    dragging = true;
+    offsetX = e.clientX - win.offsetLeft;
+    offsetY = e.clientY - win.offsetTop;
+    focusWindow(win);
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", e => {
+    if (dragging && win.dataset.fullscreen !== "true") {
+      win.style.left = `${e.clientX - offsetX}px`;
+      win.style.top = `${e.clientY - offsetY}px`;
+    }
+  });
+
+  document.addEventListener("mouseup", () => dragging = false);
+}
+
+// Resizable
+function makeResizable(win) {
+  const handle = win.querySelector(".resize-handle");
+  let resizing = false, startX = 0, startY = 0, startWidth = 0, star
