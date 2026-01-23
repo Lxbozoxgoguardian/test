@@ -1,10 +1,4 @@
-.taskbar-window-button {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: white;
-  margin-right: 4px;
-  padding: 4px 8px;
-  cursor: pointer;a/* Reset & basic styles */
+/* Reset & basic styles */
 * {
   margin: 0;
   padding: 0;
@@ -117,16 +111,58 @@ html, body {
   flex-direction: column;
 }
 
-.window
-
-  border-radius: 4px;
-  font-size: 12px;
+.window.focused {
+  outline: 2px solid #4da6ff;
 }
 
-.taskbar-window-button:hover {
-  background: rgba(255,255,255,0.3);
+/* Title bar */
+.title-bar {
+  height: 32px;
+  background: #2b2b45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  cursor: grab;
 }
 
-.taskbar-window-button.active {
-  background: rgba(77, 166, 255, 0.6);
+.title-bar:active {
+  cursor: grabbing;
+}
+
+.title-bar span {
+  font-size: 13px;
+}
+
+.window-controls button {
+  background: none;
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.window-controls button:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Window content */
+.window-content {
+  padding: 12px;
+  flex-grow: 1;
+  overflow: auto;
+  background: #1e1e2f;
+}
+
+/* Resize handle */
+.resize-handle {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  cursor: se-resize;
+  z-index: 1001;
 }
