@@ -1,31 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>WebOS Desktop</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>WebOS Desktop</title>
+<style>
+* {margin:0;padding:0;box-sizing:border-box;user-select:none;font-family:system-ui,sans-serif;}
+html,body{width:100%;height:100%;overflow:hidden;}
+#desktop{width:100%;height:100%;background:linear-gradient(135deg,#1e1e2f,#2b2b45);padding:20px;position:relative;z-index:1;}
+.icon{width:80px;text-align:center;color:white;cursor:pointer;display:inline-block;margin:10px;}
+.icon img{width:48px;height:48px;}
+.icon span{display:block;margin-top:6px;font-size:13px;}
+#taskbar{position:fixed;bottom:0;left:0;height:40px;width:100%;background:rgba(20,20,30,0.9);display:flex;justify-content:space-between;align-items:center;padding:0 12px;color:white;backdrop-filter:blur(10px);z-index:1000;}
+#task-right{font-size:14px;display:flex;gap:4px;}
+.taskbar-window-button{background:rgba(255,255,255,0.1);border:none;color:white;padding:4px 8px;cursor:pointer;border-radius:4px;font-size:12px;}
+.taskbar-window-button:hover{background:rgba(255,255,255,0.3);}
+.taskbar-window-button.active{background:rgba(77,166,255,0.6);}
+#windows{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;}
+.window{position:absolute;width:600px;height:400px;background:#1e1e2f;border-radius:8px;box-shadow:0 20px 40px rgba(0,0,0,0.4);overflow:hidden;color:white;pointer-events:auto;display:flex;flex-direction:column;}
+.window.focused{outline:2px solid #4da6ff;}
+.title-bar{height:32px;background:#2b2b45;display:flex;align-items:center;justify-content:space-between;padding:0 8px;cursor:grab;}
+.title-bar:active{cursor:grabbing;}
+.title-bar span{font-size:13px;}
+.window-controls button{background:none;border:none;color:white;width:28px;height:28px;cursor:pointer;font-size:14px;}
+.window-controls button:hover{background:rgba(255,255,255,0.15);}
+.window-content{padding:12px;flex-grow:1;overflow:auto;background:#1e1e2f;}
+.resize-handle{width:16px;height:16px;position:absolute;right:0;bottom:0;cursor:se-resize;z-index:1001;}
+</style>
 </head>
 <body>
-  <div id="desktop">
-    <div class="icon" data-app="browser">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/internet.png"/>
-      <span>Browser</span>
-    </div>
-    <div class="icon" data-app="settings">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/settings.png"/>
-      <span>Settings</span>
-    </div>
+<div id="desktop">
+  <div class="icon" data-app="browser">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/internet.png"/>
+    <span>Browser</span>
   </div>
-
-  <div id="windows"></div>
-
-  <div id="taskbar">
-    <div id="task-left">WebOS</div>
-    <div id="task-right">
-      <span id="clock"></span>
-    </div>
+  <div class="icon" data-app="settings">
+    <img src="https://img.icons8.com/ios-filled/50/ffffff/settings.png"/>
+    <span>Settings</span>
   </div>
+</div>
 
-  <script src="main.js"></script>
+<div id="windows"></div>
+
+<div id="taskbar">
+  <div id="task-left">WebOS</div>
+  <div id="task-right"><span id="clock"></span></div>
+</div>
+
+<script>
+let zIndexCounter=10;
+const windowsContainer=document.getElementById("windows");
+const taskbar=document.getElementById("task-right");
+function updateClock(){const now=new Date();document.getElementById("clock").textContent=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+setInterval(updateClock,1000);
+updateClock();
+document.querySelectorAll(".icon").forEach(icon=>{icon.addEventListener("dblclick",()=>openApp(icon.dataset.app));});
+function openApp(app){
+  const win=document.createElement("div");
+  win.className="window";
+  win.style.left="100px";
+  win.style.top="100px";
+  win.style.width="600px";
+  win.style.height="400px";
+  win.style.zIndex=++zIndexCounter;
+  win.dataset.appName=app;
+  win.dataset.id=Date.now();
+  win.innerHTML=`
+    <div class="title-bar">
+      <span>${app.toUpperCase()}</span>
+      <div class="window-controls">
+        <button data-action="minimize">—</button>
+        <button data-action="fullscreen">⬜</button>
+        <button data-action="close">✕</button>
+      </div>
+    </div>
+    <div class="window-content">
+      ${getAppContent(app)}
+    </div>
+    <div class="resize-handle"></div>
+  `;
+  windowsContainer.appendChild(win);
+  focusWindow(win);
+  makeDraggable(win);
+  makeResizable(win);
+  setupWindowControls(win);
+  createTaskbarButton(win);
+}
+function focusWindow(win){document.querySelectorAll(".window").forEach(w=>w.classList.remove("focused"));win.classList.add("focused");win.style.zIndex=++zIndexCounter;updateTaskbarButtons();}
+function makeDraggable(win){
+  const titleBar=win.querySelector(".title-bar");
+  let dragging=false,offsetX=0,offsetY=0;
+  titleBar.addEventListener("mousedown",e=>{if(win.dataset.fullscreen==="true")return;dragging=true;offsetX=e.clientX-win.offsetLeft;offsetY=e.clientY-win.offsetTop;focusWindow(win);e.preventDefault();});
+  document.addEventListener("mousemove",e=>{if(dragging&&win.dataset.fullscreen!=="true"){win.style.left=`${e.clientX-offsetX}px`;win.style.top=`${e.clientY-offsetY}px`;}});document.addEventListener("mouseup",()=>dragging=false);
+}
+function makeResizable(win){
+  const handle=win.querySelector(".resize-handle");
+  let resizing=false,startX=0,startY=0,startWidth=0,startHeight=0;
+  handle.addEventListener("mousedown",e=>{if(win.dataset.fullscreen==="true")return;resizing=true;startX=e.clientX;startY=e.clientY;startWidth=parseInt(window.getComputedStyle(win).width,10);startHeight=parseInt(window.getComputedStyle(win).height,10);focusWindow(win);e.preventDefault();e.stopPropagation();});
+  document.addEventListener("mousemove",e=>{if(!resizing)return;win.style.width=`${startWidth+(e.clientX-startX)}px`;win.style.height=`${startHeight+(e.clientY-startY)}px`;});
+  document.addEventListener("mouseup",()=>resizing=false);
+}
+function setupWindowControls(win){
+  win.querySelectorAll("button").forEach(btn=>{btn.addEventListener("click",e=>{e.stopPropagation();const action=btn.dataset.action;if(action==="close"){removeTaskbarButton(win);win.remove();}if(action==="minimize")win.style.display="none";if(action==="fullscreen")toggleFullscreen(win);updateTaskbarButtons();});});
+}
+function toggleFullscreen(win){if(!win.dataset.fullscreen){win.dataset.fullscreen="true";win.dataset.prev=JSON.stringify({left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height});win.style.left="0px";win.style.top="0px";win.style.width="100%";win.style.height="100%";}else{const prev=JSON.parse(win.dataset.prev);win.dataset.fullscreen="";win.style.left=prev.left;win.style.top=prev.top;win.style.width=prev.width;win.style.height=prev.height;}}
+function createTaskbarButton(win){const button=document.createElement("button");button.className="taskbar-window-button";button.textContent=win.dataset.appName.toUpperCase();button.dataset.winId=win.dataset.id;button.addEventListener("click",()=>{if(win.style.display==="none"){win.style.display="flex";focusWindow(win);}else{win.style.display="none";}updateTaskbarButtons();});taskbar.appendChild(button);updateTaskbarButtons();}
+function removeTaskbarButton(win){const btn=Array.from(taskbar.children).find(b=>b.dataset.winId===win.dataset.id);if(btn)btn.remove();}
+function updateTaskbarButtons(){document.querySelectorAll(".taskbar-window-button").forEach(btn=>{const win=Array.from(document.querySelectorAll(".window")).find(w=>w.dataset.id===btn.dataset.winId);if(!win)return btn.remove();btn.classList.toggle("active",win.style.display!=="none"&&win.classList.contains("focused"));});}
+function getAppContent(app){if(app==="browser"){return`<input placeholder="Enter URL (proxy coming soon)" style="width:100%;padding:8px"><p style="margin-top:10px;opacity:0.7">Proxy engine coming soon 👀</p>`;}if(app==="settings"){return`<h3>Settings</h3><p>Theme, proxy behavior, and system options will live here.</p>`;}return`<p>Unknown app</p>`;}
+</script>
 </body>
 </html>
